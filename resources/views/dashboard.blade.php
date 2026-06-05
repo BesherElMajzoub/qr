@@ -105,7 +105,7 @@
             </div>
             
             <div class="flex items-center gap-3">
-                <a href="/visitors/export" class="py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-medium text-sm rounded-xl transition flex items-center gap-2 shadow-lg shadow-emerald-500/10 cursor-pointer">
+                <a href="{{ route('visitors.export') }}" class="py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-medium text-sm rounded-xl transition flex items-center gap-2 shadow-lg shadow-emerald-500/10 cursor-pointer">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
                     </svg>
@@ -119,7 +119,7 @@
                     <span>تقرير PDF</span>
                 </button>
                 
-                <form action="/logout" method="POST">
+                <form action="{{ route('logout') }}" method="POST">
                     @csrf
                     <button type="submit" class="py-2.5 px-4 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 hover:border-white/20 font-medium text-sm rounded-xl transition flex items-center gap-2 cursor-pointer">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
@@ -194,7 +194,7 @@
                     <p class="text-xs text-slate-400 mt-1">افتح واجهة الكاميرا المخصصة للموبايل وابدأ بمسح الأكواد والبطاقات لتسجيل الحضور مع إمكانية إضافة ملاحظات فورية.</p>
                 </div>
             </div>
-            <a href="/scanner" class="py-3 px-6 bg-indigo-500 hover:bg-indigo-600 active:scale-95 text-white font-bold text-sm rounded-xl transition shadow-lg shadow-indigo-500/10 whitespace-nowrap cursor-pointer">
+            <a href="{{ route('scanner') }}" class="py-3 px-6 bg-indigo-500 hover:bg-indigo-600 active:scale-95 text-white font-bold text-sm rounded-xl transition shadow-lg shadow-indigo-500/10 whitespace-nowrap cursor-pointer">
                 الذهاب لصفحة المسح الكاميرا &larr;
             </a>
         </div>
@@ -340,7 +340,7 @@
 
             const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
             
-            fetch(`/visitors/${id}`, {
+            fetch(`{{ url('/visitors') }}/${id}`, {
                 method: "DELETE",
                 headers: {
                     "Content-Type": "application/json",
