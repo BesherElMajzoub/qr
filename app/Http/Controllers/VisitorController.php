@@ -2,12 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-
 use App\Models\Visitor;
-use Illuminate\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class VisitorController extends Controller
@@ -31,27 +30,44 @@ class VisitorController extends Controller
     }
 
     /**
+     * Display the standalone QR scanner page.
+     */
+    public function showScanner(Request $request): View
+    {
+        $recentVisitors = Visitor::orderBy('created_at', 'desc')->take(5)->get();
+
+        return view('scanner', compact('recentVisitors'));
+    }
+
+    /**
      * Process scanned QR code data via AJAX.
      */
     public function scan(Request $request): JsonResponse
     {
         $request->validate([
             'qr_raw_data' => 'required|string',
+            'name' => 'nullable|string|max:255',
+            'email' => 'nullable|email|max:255',
+            'phone' => 'nullable|string|max:255',
+            'notes' => 'nullable|string',
         ]);
 
         $qrRawData = $request->input('qr_raw_data');
+        $notes = $request->input('notes');
 
-        // Check if QR data is valid JSON
-        $decoded = json_decode($qrRawData, true);
+        $name = $request->input('name');
+        $email = $request->input('email');
+        $phone = $request->input('phone');
 
-        $name = null;
-        $email = null;
-        $phone = null;
+        // Fallback to QR JSON parsing if values were not explicitly provided by the modal edit form
+        if ($request->missing('name') && $request->missing('email') && $request->missing('phone')) {
+            $decoded = json_decode($qrRawData, true);
 
-        if (is_array($decoded)) {
-            $name = $decoded['name'] ?? null;
-            $email = $decoded['email'] ?? null;
-            $phone = $decoded['phone'] ?? null;
+            if (is_array($decoded)) {
+                $name = $decoded['name'] ?? null;
+                $email = $decoded['email'] ?? null;
+                $phone = $decoded['phone'] ?? null;
+            }
         }
 
         // Check for duplicates
@@ -71,6 +87,7 @@ class VisitorController extends Controller
             'name' => $name,
             'email' => $email,
             'phone' => $phone,
+            'notes' => $notes,
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
             'scanned_at' => now(),
@@ -84,20 +101,42 @@ class VisitorController extends Controller
     }
 
     /**
+     * Delete a visitor from the database.
+     */
+    public function destroy(int $id): JsonResponse
+    {
+        $visitor = Visitor::find($id);
+
+        if (! $visitor) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'الزائر غير موجود!',
+            ], 404);
+        }
+
+        $visitor->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'تم حذف الزائر بنجاح!',
+        ], 200);
+    }
+
+    /**
      * Stream export visitors to CSV with UTF-8 BOM for proper Arabic support in Excel.
      */
     public function export(): StreamedResponse
     {
         $headers = [
             'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="visitors-' . date('Y-m-d-H-i-s') . '.csv"',
+            'Content-Disposition' => 'attachment; filename="visitors-'.date('Y-m-d-H-i-s').'.csv"',
         ];
 
         $callback = function (): void {
             $file = fopen('php://output', 'w');
 
             // Add UTF-8 BOM to prevent Arabic character corruption in Excel
-            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
 
             // Write CSV headers
             fputcsv($file, [
@@ -106,6 +145,7 @@ class VisitorController extends Controller
                 'Name',
                 'Email',
                 'Phone',
+                'Notes',
                 'IP Address',
                 'User Agent',
                 'Scanned At',
@@ -120,6 +160,7 @@ class VisitorController extends Controller
                     $visitor->name,
                     $visitor->email,
                     $visitor->phone,
+                    $visitor->notes,
                     $visitor->ip_address,
                     $visitor->user_agent,
                     $visitor->scanned_at->toDateTimeString(),

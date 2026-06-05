@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use Database\Factories\VisitorFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Visitor extends Model
 {
-    /** @use HasFactory<\Database\Factories\VisitorFactory> */
+    /** @use HasFactory<VisitorFactory> */
     use HasFactory;
 
     /**
@@ -23,6 +24,7 @@ class Visitor extends Model
         'ip_address',
         'user_agent',
         'scanned_at',
+        'notes',
     ];
 
     /**

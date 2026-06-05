@@ -2,10 +2,9 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
-use Tests\TestCase;
 use App\Models\Visitor;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class VisitorTest extends TestCase
 {
@@ -192,10 +191,76 @@ class VisitorTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
-        
+
         $content = $response->streamedContent();
         $this->assertStringContainsString('Export User', $content);
         $this->assertStringContainsString('export@example.com', $content);
         $this->assertStringContainsString('raw-data-123', $content);
+    }
+
+    /**
+     * Test accessing scanner without authentication redirects to login.
+     */
+    public function test_scanner_requires_authentication(): void
+    {
+        $response = $this->get('/scanner');
+
+        $response->assertRedirect('/login');
+    }
+
+    /**
+     * Test accessing scanner with authentication.
+     */
+    public function test_scanner_allows_authenticated(): void
+    {
+        $response = $this->withSession(['dashboard_authenticated' => true])
+            ->get('/scanner');
+
+        $response->assertStatus(200);
+        $response->assertViewIs('scanner');
+    }
+
+    /**
+     * Test scanning with explicit name, email, phone, and notes inputs.
+     */
+    public function test_scan_with_explicit_inputs_and_notes(): void
+    {
+        $response = $this->withSession(['dashboard_authenticated' => true])
+            ->postJson('/visitors/scan', [
+                'qr_raw_data' => 'raw-qr-code-identity',
+                'name' => 'Custom Name Input',
+                'email' => 'custom@email.com',
+                'phone' => '077777777',
+                'notes' => 'Some private follow-up exhibition notes',
+            ]);
+
+        $response->assertStatus(201);
+        $this->assertDatabaseHas('visitors', [
+            'qr_raw_data' => 'raw-qr-code-identity',
+            'name' => 'Custom Name Input',
+            'email' => 'custom@email.com',
+            'phone' => '077777777',
+            'notes' => 'Some private follow-up exhibition notes',
+        ]);
+    }
+
+    /**
+     * Test deleting a visitor record.
+     */
+    public function test_delete_visitor_record(): void
+    {
+        $visitor = Visitor::factory()->create();
+
+        $response = $this->withSession(['dashboard_authenticated' => true])
+            ->deleteJson("/visitors/{$visitor->id}");
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'status' => 'success',
+        ]);
+
+        $this->assertDatabaseMissing('visitors', [
+            'id' => $visitor->id,
+        ]);
     }
 }
